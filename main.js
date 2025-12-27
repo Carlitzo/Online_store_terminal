@@ -23,17 +23,20 @@ async function main() {
         const choice = await userInput("Choose: ");
     
         switch (choice) {
-            case "1":
-                let admin_username = await userInput("Please enter your admin username: ");
+            case "1": {
+                let admin_email = await userInput("Please enter your admin email: ");
                 let admin_password = await userInput("Please enter your admin password: ");
-                await sendRequest({request: "login", body: {username: admin_username, password: admin_password}});
+                console.log("sending request");
++               await sendRequest({request: "login", body: {email: admin_email, password: admin_password}});
             break;
-            case "2":
-                let customer_username = await userInput("Please enter your customer username: ");
+            }
+            case "2": {
+                let customer_email = await userInput("Please enter your customer email: ");
                 let customer_password = await userInput("Please enter your customer password: ");
-                await sendRequest({request: "login", body: {username: customer_username, password: customer_password}});
+                await sendRequest({request: "login", body: {email: customer_email, password: customer_password}});
             break;
-            case "3":
+            }
+            case "3": {
                 let register_first_name = await userInput("Please enter your first name: ");
                 let register_last_name = await userInput("Please enter your last name: ");
                 let register_email = await userInput("Please enter your email: ");
@@ -48,7 +51,7 @@ async function main() {
                         f_name: register_first_name,
                         l_name: register_last_name,
                         email: register_email,
-                        password: await hashPassword(register_password), //Skapa funktionen hashPassword
+                        password: await hashPassword(register_password),
                         phone: register_phone,
                         address: register_address,
                         city: register_city,
@@ -56,6 +59,7 @@ async function main() {
                     }
                 });
             break;
+            }
             case "4":
             break;
             case "5":
