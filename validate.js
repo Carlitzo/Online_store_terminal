@@ -23,5 +23,10 @@ export function validateBody({request, body}) {
             console.log("inside view_all_products");
             return true;
         }
+        case "search_products": {
+            if (!body.choice, !body.value) {
+                return false;
+            } return true;
+        }
     }
 }

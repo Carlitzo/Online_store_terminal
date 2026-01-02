@@ -3,6 +3,7 @@ import { validateBody } from "./validate.js";
 import { verifyPassword } from "./hash.js";
 import "jsr:@std/dotenv/load";
 import { log } from "node:console";
+import { createWriteStream } from "node:fs";
 
 export const client = new Client({
     hostname: Deno.env.get("PG_HOST"),
@@ -88,11 +89,46 @@ export async function sendRequest({request, body}) {
             } case "view_all_products": {
                 try {
                     console.log("Fetching products");
-                    const result = await client.queryObject(`SELECT * FROM online_store.all_products`);
+                    result = await client.queryObject(`SELECT * FROM online_store.all_products`);
                     if (result.rows.length === 0) {
                         return { success: false, message: "No products found"};
                     }
                     return { success: true, message: result.rows };
+                } catch (error) {
+                    return { success: false, message: error};
+                } finally {
+                    client.end();
+                }
+            } case "search_products": {
+                try {
+                    console.log("searching for products");
+                    switch(body.choice) {
+                        case "1": {
+                            result = await client.queryObject(`SELECT online_store.search_by_name($1::text)`, [body.value]);
+                            break;
+                        }
+                        case "2": {
+                            result = await client.queryObject(`SELECT online_store.search_by_code($1::int)`, [Number(body.value)]);
+                            break;
+                        }
+                        case "3": {
+                            result = await client.queryObject(`SELECT online_store.search_by_supplier($1::text)`, [body.supplier]);
+                            break;
+                        }
+                        case "4": {
+                            result = await client.queryObject(`SELECT online_store.search_by_price($1::int)`, [Number(body.max)]);
+                            break;
+                        }
+                        case "5": {
+                            result = await client.queryObject(``);
+                            break;
+                        }
+                    }
+
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "No result found"};
+                    }
+                    return { success: true, message: result.rows};
                 } catch (error) {
                     return { success: false, message: error};
                 } finally {

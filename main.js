@@ -1,4 +1,3 @@
-import { interceptors } from "asset:///node/undici/index.d.ts";
 import { sendRequest } from "./db.js";
 import { hashPassword } from "./hash.js";
 import "jsr:@std/dotenv/load";
@@ -23,15 +22,18 @@ async function main() {
         console.log("2. Customer login");
         console.log("3. Register user");
         console.log("4. View store-products");
-        console.log("5. Select date");
-        console.log("6. Exit"); // Behövs view cart,
+        console.log("5. Search for products");
+        console.log("6. Select date");
+        console.log("7. View my cart");
+        console.log("8. Exit");
         if (admin_logged_in) {
-            console.log("7. Manage discounts (admin only)");
-            console.log("8. Add products (admin only)");
-            console.log("9. Remove products (admin only)");
-            console.log("10. Add supplier (admin only)");
-            console.log("11. Remove supplier (admin only)");
-            console.log("12. Manage orders");
+            console.log("9. Manage discounts (admin only)");
+            console.log("10. Add products (admin only)");
+            console.log("11. Remove products (admin only)");
+            console.log("12. Add supplier (admin only)");
+            console.log("13. Remove supplier (admin only)");
+            console.log("14. Manage orders");
+            console.log("15. Edit quantity of product");
         }
         console.log("Select by typing the associated number.");
         //Admin-meny: Ska kunna lägga till rabatter, justera dem nuvarande rabatterna, lägga till produkter, ta bort produkter,
@@ -106,7 +108,7 @@ async function main() {
                     })
                     if (customer_logged_in) {
                         let cart = {
-                            customer_id = logged_in_customer_id,
+                            customer_id: logged_in_customer_id,
                             items: []
                         };
 
@@ -144,11 +146,32 @@ async function main() {
                         } else {
                             console.log("Cart is empty. No items to purchase.");
                         }
+                    } else {
+                        console.log("Please log in if you wish to purchase products.");
                     }
+                } else {
+                    console.log(result.message);
                 }
             }
             break;
-            case "5":
+            case "5": {
+                console.log("Search by:");
+                console.log("1. Product name");
+                console.log("2. Product code");
+                console.log("3. Supplier");
+                console.log("4. Price (max)");
+                console.log("5. Discounted products");
+
+                const choice = await userInput("Choose: ");
+
+                let value;
+                if (choice !== "5") {
+                    value = await userInput("Enter search value: ");
+                }
+
+                const result = sendRequest({ request: "search_products",  body: { choice: choice, value: value }});
+
+            }
             break;
             case "6":
             break;
