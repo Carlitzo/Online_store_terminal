@@ -2,8 +2,6 @@ import { Client } from "jsr:@db/postgres";
 import { validateBody } from "./validate.js";
 import { verifyPassword } from "./hash.js";
 import "jsr:@std/dotenv/load";
-import { log } from "node:console";
-import { createWriteStream } from "node:fs";
 
 export const client = new Client({
     hostname: Deno.env.get("PG_HOST"),
@@ -13,9 +11,11 @@ export const client = new Client({
     database: Deno.env.get("PG_DATABASE"),
 });
 
-export async function sendRequest({request, body}) {
-
+export async function connectDB() {
     await client.connect();
+}
+
+export async function sendRequest({request, body}) {
 
     if (validateBody({request: request, body: body})) {
         let result;
@@ -41,7 +41,6 @@ export async function sendRequest({request, body}) {
                 } catch (error) {
                     return { success: false, message: result };
                 } finally {
-                    client.end();
                 }
             }
             case "admin_login": {
@@ -64,7 +63,6 @@ export async function sendRequest({request, body}) {
                     console.log("There was an error");
                     return { success: false, message: error};
                 } finally {
-                    client.end();
                 }
             }
             case "customer_login": {
@@ -84,7 +82,6 @@ export async function sendRequest({request, body}) {
                 } catch (error) {
                     return { success: false, message: error};
                 } finally {
-                    client.end();
                 }
             } case "view_all_products": {
                 try {
@@ -97,26 +94,25 @@ export async function sendRequest({request, body}) {
                 } catch (error) {
                     return { success: false, message: error};
                 } finally {
-                    client.end();
                 }
             } case "search_products": {
                 try {
                     console.log("searching for products");
                     switch(body.choice) {
                         case "1": {
-                            result = await client.queryObject(`SELECT online_store.search_by_name($1::text)`, [body.value]);
+                            result = await client.queryObject(`SELECT online_store.products_by_name($1::text)`, [body.value]);
                             break;
                         }
                         case "2": {
-                            result = await client.queryObject(`SELECT online_store.search_by_code($1::int)`, [Number(body.value)]);
+                            result = await client.queryObject(`SELECT online_store.products_by_code($1::int)`, [Number(body.value)]);
                             break;
                         }
                         case "3": {
-                            result = await client.queryObject(`SELECT online_store.search_by_supplier($1::text)`, [body.supplier]);
+                            result = await client.queryObject(`SELECT online_store.products_by_supplier($1::text)`, [body.value]);
                             break;
                         }
                         case "4": {
-                            result = await client.queryObject(`SELECT online_store.search_by_price($1::int)`, [Number(body.max)]);
+                            result = await client.queryObject(`SELECT online_store.products_by_price($1::int)`, [Number(body.value)]);
                             break;
                         }
                         case "5": {
@@ -132,7 +128,51 @@ export async function sendRequest({request, body}) {
                 } catch (error) {
                     return { success: false, message: error};
                 } finally {
-                    client.end();
+                }
+            } case "create_order": {
+                try {
+                    console.log("creating order");
+                    result = await client.queryObject(`SELECT online_store.create_order($1::int, $2::jsonb)`, [Number(body.user_id), JSON.stringify(body.items)]);
+    
+                    console.log(result);
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "Something went wrong, no order created" };
+                    }
+                    return { success: true, message: result.rows };
+                } catch (error) {
+                    console.log(error);
+                    return { success: false, message: error };
+                } finally {
+                }
+            } case "get_orders": {
+                try {
+                    console.log("getting orders");
+                    
+                    result = await client.queryObject(`SELECT * from online_store.customer_order WHERE user_id = $1`, [Number(body.user_id)]);
+
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "No orders found" };
+                    }
+                    return { success: true, message: result.rows };
+                } catch (error) {
+                    console.log(error);
+                    return { success: false, message: error };
+                } finally {
+                }
+            } case "get_order": {
+                try {
+                    console.log("getting order");
+
+                    result = await client.queryObject(`SELECT online_store.get_order_items($1::int)`, [Number(body.order_id)]);
+
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "No orders found" };
+                    }
+                    return { success: true, message: result.rows };
+                } catch (error) {
+                    console.log(error);
+                    return { success: false, message: error};
+                } finally {
                 }
             }
         }

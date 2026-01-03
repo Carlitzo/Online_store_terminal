@@ -24,7 +24,22 @@ export function validateBody({request, body}) {
             return true;
         }
         case "search_products": {
-            if (!body.choice, !body.value) {
+            if (!body.choice || !body.value) {
+                return false;
+            } return true;
+        }
+        case "create_order": {
+            if (!body.items || !body.user_id) {
+                return false;
+            } return true;
+        }
+        case "get_orders": {
+            if (!body.user_id) {
+                return false;
+            } return true;
+        }
+        case "get_order": {
+            if (!body.order_id) {
                 return false;
             } return true;
         }

@@ -1,7 +1,6 @@
-import { sendRequest } from "./db.js";
+import { connectDB, sendRequest, client } from "./db.js";
 import { hashPassword } from "./hash.js";
 import "jsr:@std/dotenv/load";
-
 
 async function userInput(message = "> ") {
     return prompt(message);
@@ -24,7 +23,7 @@ async function main() {
         console.log("4. View store-products");
         console.log("5. Search for products");
         console.log("6. Select date");
-        console.log("7. View my cart");
+        console.log("7. View my orders");
         console.log("8. Exit");
         if (admin_logged_in) {
             console.log("9. Manage discounts (admin only)");
@@ -107,10 +106,7 @@ async function main() {
                         //base_price behöver senare vara rabatterat pris. En check behöver göras /(inuti sendRequest eller här?) för att kontrollera om någon rabatt finns.
                     })
                     if (customer_logged_in) {
-                        let cart = {
-                            customer_id: logged_in_customer_id,
-                            items: []
-                        };
+                        let items = [];
 
                         while (true) {
                             let number_of_item = Number(await userInput("Please enter the number of the item you would like to purchase\n 0 to exit "));
@@ -128,21 +124,26 @@ async function main() {
                                 amount = Number(await userInput("Cannot exceed available quantity or be <= 0, try again: "));
                             }
 
-                            cart.items.push({
+                            items.push({
                                 prod_id: item.prod_id,
-                                name: item.name,
-                                amount: item.amount,
-                                unit_price: item.base_price,
-                                date_added: new Date().toISOString()
+                                amount: amount
                             })
 
                             console.log(`Added ${amount} x ${item.name} to the cart`);
                         }
 
-                        if (cart.items.length > 0) {
-                            console.log("Final cart:", cart);
-                            // Här kan du skicka cart till sendRequest() för att spara i databasen
-                            // await sendRequest({ request: "create_order", body: cart });
+                        if (items.length > 0) {
+                            console.log("Final cart:", items);
+                            const confirm = await userInput("Would you like to pay for your order? If not, type cancel");
+                            if (confirm == "cancel") {
+                                break;
+                            }
+                            const orderResult = await sendRequest({ request: "create_order", body: {user_id: logged_in_customer_id, items: items} });
+                            if (orderResult?.success) {
+                                console.log("Order created with id: ", orderResult.message[0].create_order);
+                            } else {
+                                console.log(orderResult.message);
+                            }
                         } else {
                             console.log("Cart is empty. No items to purchase.");
                         }
@@ -169,14 +170,54 @@ async function main() {
                     value = await userInput("Enter search value: ");
                 }
 
-                const result = sendRequest({ request: "search_products",  body: { choice: choice, value: value }});
+                const result = await sendRequest({ request: "search_products",  body: { choice: choice, value: value }});
 
             }
             break;
             case "6":
             break;
+            case "7": {
+                if (!logged_in_customer_id) {
+                    console.log("You must log in before we can check your orders!");
+                    break;
+                }
+
+                let result = await sendRequest({ request: "get_orders", body: { user_id: logged_in_customer_id }});
+
+                if (result?.success) { 
+                    console.log("Your current orders:");
+                    for (let order of result.message) {
+                        console.log("order_id: ", order.order_id);
+                        console.log(order.created_at);
+                        console.log(order.status);
+                    }
+                    while (true) {
+                        let choice = await userInput("Would you like to view the products of any order? Please type the number of the order_id or exit if not.");
+                        if (choice.toLowerCase() == "exit") {
+                            break;
+                        } else {
+                            result = await sendRequest({ request: "get_order", body: { order_id: choice }});
+
+                            for (let item of result.message) {
+                                console.log(item); // GÖR EN SNYGGARE CONSOLE.LOG AV ALLA ITEMS I ORDERN HÄR. DEM SER UT SÅHÄR:
+                                // { get_order_items: '(1,2,"Fender Telecaster",2,400.00,0.00)' }
+                            }
+                        }
+                    }
+                } else {
+                    console.log(result.message);
+                }
+            }
+            break;
+            case "8":
+                await client.end();
+                console.log("Exiting program.");
+                Deno.exit(0);
+            break;
         }
     }
 }
+
+await connectDB();
 
 await main();
