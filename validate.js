@@ -21,7 +21,9 @@ export function validateBody({request, body}) {
         }
         case "view_all_products": {
             console.log("inside view_all_products");
-            return true;
+            if (!body.date) {
+                return false;
+            } return true;
         }
         case "search_products": {
             if (!body.choice || !body.value) {
@@ -29,7 +31,7 @@ export function validateBody({request, body}) {
             } return true;
         }
         case "create_order": {
-            if (!body.items || !body.user_id) {
+            if (!body.items || !body.user_id || !body.date) {
                 return false;
             } return true;
         }
@@ -43,5 +45,34 @@ export function validateBody({request, body}) {
                 return false;
             } return true;
         }
-    }
-}
+        case "create_discount": {
+            if (!body.discount_code || !body.discount_percentage || !body.discount_reason) {
+                return false;
+            } return true;
+        }
+        case "get_discounts": {
+            return true;
+        }
+        case "apply_discount": {
+            if (!body.discount || !body.products || !body.start_date || !body.end_date) {
+                return false;
+            } return true;
+        }
+        case "get_product_types": {
+            return true;
+        }
+        case "get_suppliers": {
+            return true;
+        }
+        case "add_product": {
+            if (!body.name || !body.product_type || !body.supplier || !body.base_price || !body.quantity) {
+                return false;
+            } return true;
+        }
+        case "remove_product": {
+            if (!body.prod_id) {
+                return false;
+            } return true;
+        }
+    };
+};
