@@ -39,11 +39,11 @@ async function main() {
         console.log("Select by typing the associated number.");
         console.log("_________________________________________________");
         
-        //Lägg till att en customer ska kunna avbryta sin order i case 7 om den inte redan är confirmed.
-        //SE TILL ATT EN CUSTOMER SER TOTALPRISET PÅ SIN CART INNAN DE BETALAR
         //TODO:
-        //ADMIN SKA KUNNA SE DISCOUNT HISTORIK (PRINTA UT ALLA DISCOUNTS);
-        //
+        //SE TILL ATT EN CUSTOMER SER TOTALPRISET (DISCOUNT INKLUDERAT) INNAN DE BETALAR.
+        //SE TILL ATT EN CUSTOMER SER TOTALPRISET (DISCOUNT INKLUDERAT) INNAN DE CANCELLAR SIN ORDER.
+        //KONTROLLERA ATT INSTRUKTIONER (SKRIV DETTA FÖR ATT GÅ VIDARE, SKRIV ENDAST DETTA, SKRIV ENDAST INTS OSV) FINNS GENOM HELA APPEN.
+        //TA BORT CONSOLE.LOG("FETCHING ALL PRODUCTS") OSV I ALLA DB.JS CASES.
 
         const choice = await userInput("Choose: ");
     

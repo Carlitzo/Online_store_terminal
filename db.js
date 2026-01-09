@@ -39,7 +39,7 @@ export async function sendRequest({request, body}) {
 
                       return { success: true, message: result.rows[0]};
                 } catch (error) {
-                    return { success: false, message: result };
+                    return { success: false, message: error };
                 }
             }
             case "admin_login": {
