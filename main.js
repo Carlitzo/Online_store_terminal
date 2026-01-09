@@ -1,4 +1,3 @@
-import { Console } from "node:console";
 import { connectDB, sendRequest, client } from "./db.js";
 import { hashPassword } from "./hash.js";
 import "jsr:@std/dotenv/load";
@@ -17,29 +16,35 @@ async function main() {
 
     while (true) {
     
+        console.log("_________________________________________________");
         console.log("Please select one of the given alternatives:");
+        console.log("_________________________________________________");
         console.log("1. Admin login");
         console.log("2. Customer login");
         console.log("3. Register user");
         console.log("4. View store-products");
         console.log("5. Search for products");
         console.log("6. Select date");
-        console.log("7. View my orders");
+        console.log("7. Manage my orders");
         console.log("8. Exit");
         if (admin_logged_in) {
             console.log("9. Manage discounts (admin only)");
             console.log("10. Add products (admin only)");
             console.log("11. Remove products (admin only)");
             console.log("12. Add supplier (admin only)");
-            console.log("13. Remove supplier (admin only)");
-            console.log("14. Manage orders");
-            console.log("15. Edit quantity of product");
-        }
+            console.log("13. Manage orders");
+            console.log("14. Edit quantity of product");
+        };
+        console.log("_________________________________________________");
         console.log("Select by typing the associated number.");
-        //Admin-meny: Ska kunna lägga till rabatter, justera dem nuvarande rabatterna, lägga till produkter, ta bort produkter,
-        //lägga till leverantörer, ta bort leverantörer. (finns fler grejer men kommer inte på)
+        console.log("_________________________________________________");
+        
+        //Lägg till att en customer ska kunna avbryta sin order i case 7 om den inte redan är confirmed.
+        //SE TILL ATT EN CUSTOMER SER TOTALPRISET PÅ SIN CART INNAN DE BETALAR
+        //TODO:
+        //ADMIN SKA KUNNA SE DISCOUNT HISTORIK (PRINTA UT ALLA DISCOUNTS);
+        //
 
-    
         const choice = await userInput("Choose: ");
     
         switch (choice) {
@@ -50,7 +55,9 @@ async function main() {
                 const result = await sendRequest({request: "admin_login", body: {email: admin_email, password: admin_password}});
                 if (result?.success) {
                     admin_logged_in = true;
+                    console.log("_________________________________________________");
                     console.log("You are now logged in as admin: ", result.message);
+                    console.log("_________________________________________________");
                 } else {
                     console.log(result.message);
                 }
@@ -63,7 +70,9 @@ async function main() {
                 if (result?.success) {
                     customer_logged_in = true;
                     logged_in_customer_id = result.message.user_id;
+                    console.log("_________________________________________________");
                     console.log("You are now logged in as customer: ", result.message.first_name);
+                    console.log("_________________________________________________");
                 } else {
                     console.log(result);
                 }
@@ -92,7 +101,9 @@ async function main() {
                     }
                 });
                 if (result?.success) {
-                    console.log(result.message);
+                    console.log("_________________________________________________");
+                    console.log(result.message.registercustomer);
+                    console.log("_________________________________________________");
                 } else {
                     console.log(result.message);
                 }
@@ -101,15 +112,17 @@ async function main() {
             case "4": {
                 const result = await sendRequest({ request: "view_all_products", body: {date: current_date}});
                 if (result?.success) {
+                    console.log("_________________________________________________");
                     console.log("Products: ");
                     result.message.forEach((p) => {
                         console.log(`${p.prod_id}: ${p.name} - ${p.base_price}kr - Quantity: ${p.quantity} - Supplier: ${p.supplier} - Discount ${p.percentage ?? 0}`);
                     })
+                    console.log("_________________________________________________");
                     if (customer_logged_in) {
                         let items = [];
 
                         while (true) {
-                            let number_of_item = Number(await userInput("Please enter the number of the item you would like to purchase\n 0 to exit "));
+                            let number_of_item = Number(await userInput("Please enter the number of the item you would like to purchase or 0 to exit "));
                             if (number_of_item === 0) break;
 
                             let item = result.message.find(p => p.prod_id === number_of_item);
@@ -129,18 +142,24 @@ async function main() {
                                 amount: amount
                             })
 
+                            console.log("_________________________________________________");
                             console.log(`Added ${amount} x ${item.name} to the cart`);
+                            console.log("_________________________________________________");
                         }
 
                         if (items.length > 0) {
                             console.log("Final cart:", items);
+                            console.log("_________________________________________________");
                             const confirm = await userInput("Would you like to pay for your order? If not, type cancel");
+                            console.log("_________________________________________________");
                             if (confirm == "cancel") {
                                 break;
                             }
                             const orderResult = await sendRequest({ request: "create_order", body: {user_id: logged_in_customer_id, items: items, p_date: current_date} });
                             if (orderResult?.success) {
+                                console.log("_________________________________________________");
                                 console.log("Order created with id: ", orderResult.message[0].create_order);
+                                console.log("_________________________________________________");
                             } else {
                                 console.log(orderResult.message);
                             }
@@ -148,7 +167,9 @@ async function main() {
                             console.log("Cart is empty. No items to purchase.");
                         }
                     } else {
+                        console.log("_________________________________________________");
                         console.log("Please log in if you wish to purchase products.");
+                        console.log("_________________________________________________");
                     }
                 } else {
                     console.log(result.message);
@@ -175,7 +196,9 @@ async function main() {
                 const result = await sendRequest({ request: "search_products",  body: { choice: choice, value: value }});
 
                 if (result?.success && choice === "5") {
+                    console.log("_________________________________________________");
                     console.log("Result of search");
+                    console.log("_________________________________________________");
                     for (let item of result.message) {
                         console.log("Product id: ", item.prod_id);
                         console.log("Name: ", item.name);
@@ -183,9 +206,13 @@ async function main() {
                         console.log("Available quantity: ", item.quantity);
                         console.log("Supplier: ", item.supplier);
                         console.log("Discount: ", item.discount);
-                        console.log("_____________________________");
+                        console.log("_________________________________________________");
                     }
                     break;
+                } else if (!result?.success && choice === "5") {
+                    console.log("_________________________________________________");
+                    console.log(result.message);
+                    console.log("_________________________________________________");
                 };
 
                 if (result?.success) {
@@ -202,13 +229,16 @@ async function main() {
             }
             break;
             case "6": {
+                console.log("_________________________________________________");
                 console.log("This is the current date: ", current_date.toISOString().slice(0,10));
                 console.log("Please enter the date you would like to set.");
                 let year = await userInput("Start with the year please: ", "(YYYY)");
                 let month = await userInput("Now the month: ", "(Month 1-12)");
                 let day = await userInput("Now the day please: ", "(Day (1-31))");
                 current_date = new Date(year, month - 1, day);
+                console.log("_________________________________________________");
                 console.log("Updated the date to: ", current_date.toISOString().slice(0,10));
+                console.log("_________________________________________________");
             }
             break;
             case "7": {
@@ -216,37 +246,65 @@ async function main() {
                     console.log("You must log in before we can check your orders!");
                     break;
                 }
+                let inMenu = true;
+                while (inMenu) {
+                    console.log("Would you like to: ");
+                    console.log("1: View your orders. ");
+                    console.log("2: Cancel any non-confirmed order. ");
+                    console.log("3: Go back to main menu. ");
+                    let choice = await userInput("Please enter the number of your choice. ");
 
-                let result = await sendRequest({ request: "get_orders", body: { user_id: logged_in_customer_id }});
+                    switch (choice) {
+                        case "1": {
+                            let result = await sendRequest({ request: "get_orders", body: { user_id: logged_in_customer_id }});
+            
+                            if (result?.success) { 
+                                console.log("Your current orders:");
+                                for (let order of result.message) {
+                                    console.log("order_id: ", order.order_id);
+                                    console.log("Order created at:", order.created_at);
+                                    console.log("Order status: ", order.status);
+                                }
+                                while (true) {
+                                    let choice = await userInput("Would you like to view the products of any order? Please type the number of the order_id or exit if not.");
+                                    if (choice.toLowerCase() == "exit") {
+                                        break;
+                                    } else {
+                                        result = await sendRequest({ request: "get_order", body: { order_id: choice }});
+                
+                                        for (let item of result.message) {
+                                            console.log("_________________________________________________");
+                                            console.log(`Product: ${item.product_name} Product ID: ${item.product_id} Quantity: ${item.quantity} Unit price: ${item.unit_price} kr Discount: ${item.discount_percentage} % Total price: ${item.total_price}
+                                            `);
+                                        };
+                                        console.log("_________________________________________________");
+                                    }
+                                }
+                            } else {
+                                console.log(result.message);
+                            }
+                        }
+                        break;
+                        case "2": {
+                            let order_id = await userInput("Please enter the order id of the order you wish to cancel.");
+                            
+                            let result = await sendRequest({ request: "cancel_order", body: { order_id: order_id, user_id: logged_in_customer_id }});
 
-                if (result?.success) { 
-                    console.log("Your current orders:");
-                    for (let order of result.message) {
-                        console.log("order_id: ", order.order_id);
-                        console.log(order.created_at);
-                        console.log(order.status);
-                    }
-                    while (true) {
-                        let choice = await userInput("Would you like to view the products of any order? Please type the number of the order_id or exit if not.");
-                        if (choice.toLowerCase() == "exit") {
-                            break;
-                        } else {
-                            result = await sendRequest({ request: "get_order", body: { order_id: choice }});
-
-                            for (let item of result.message) {
-                                console.log(`
-                                Product: ${item.product_name}
-                                Product ID: ${item.product_id}
-                                Quantity: ${item.quantity}
-                                Unit price: ${item.unit_price} kr
-                                Discount: ${item.discount_percentage} %
-                                Total price: ${item.total_price}
-                                `);
-                              }
+                            if (result?.success) {
+                                console.log("_________________________________________________");
+                                console.log(result.message);
+                                console.log("_________________________________________________");
+                            } else {
+                                console.log("_________________________________________________");
+                                console.log(result.message);
+                                console.log("_________________________________________________");
+                            }
+                        }
+                        break;
+                        case "3": {
+                            inMenu = false;
                         }
                     }
-                } else {
-                    console.log(result.message);
                 }
             }
             break;
@@ -262,6 +320,7 @@ async function main() {
                     console.log("1: Create a new discount");
                     console.log("2: Add products to a set discount");
                     console.log("3: View all discounts");
+                    console.log("4: View all discounts and their corrolated products");
                     let choice = await userInput("Please choose: ");
     
                     if (choice == "1") {
@@ -307,7 +366,6 @@ async function main() {
                                 console.log("Discount code: ", discount.code);
                                 console.log("Discount percentage: ", discount.percentage);
                                 console.log("Discount reason: ", discount.reason);
-                                console.log("-----------------------------------")
                             };
                         };
 
@@ -337,6 +395,27 @@ async function main() {
                                 console.log("-----------------------------------")
                             };
                         };
+                    } else if (choice === "4") {
+                        let result = await sendRequest({ request: "get_discount_history" });
+
+                        if (result?.success) {
+                            for (let discount of result.message) {
+                                console.log("_________________________________________________");
+                                console.log("Discount id: ", discount.v_discount_id);
+                                console.log("Discount code: ", discount.v_discount_code);
+                                console.log("Discount percentage: ", discount.v_percentage);
+                                console.log("Discount reason: ", discount.v_reason);
+                                console.log("Product id: ", discount.v_product_id);
+                                console.log("Product name: ", discount.v_product_name)
+                                console.log("Product base price: ", discount.v_base_price);
+                                console.log("Products final price: ", discount.v_final_price);
+                                console.log("Discount start date for product: ", discount.v_start_date);
+                                console.log("Discount end date for product: ", discount.v_end_date);
+                            }
+                            console.log("_________________________________________________");
+                        } else {
+                            console.log(result.message);
+                        }
                     }
                 } 
             }
@@ -398,6 +477,93 @@ async function main() {
 
                     if (result?.success) {
                         console.log(result.message[0].remove_product);
+                    }
+                }
+            }
+            break;
+            case "12": {
+                if (admin_logged_in) {
+                    console.log("The required format for a supplier is: ")
+                    console.log("1: name (Cannot be the same as another supplier)");
+                    console.log("2: email (Cannot be the same as another supplier)");
+                    console.log("3: phone");
+
+                    let name = await userInput("Please enter the suppliers name: ");
+
+                    let email = await userInput("Please enter the suppliers email: ");
+
+                    let phone = await userInput("Please enter the suppliers phonenumber: ");
+
+                    let request = await sendRequest({ request: "add_supplier", body: { name: name, email: email, phone: phone  }});
+
+                    if (request?.success) {
+                        console.log("Supplier added: ");
+                        console.log("Name: ", request.message.name);
+                        console.log("Email: ", request.message.email);
+                        console.log("Phonenumber: ", request.message.phone);
+                    };
+                };
+            }
+            break;
+            case "13": {
+                if (admin_logged_in) {
+                    let orders = await sendRequest({ request: "get_all_orders" });
+
+                    if (orders?.success) {
+                        console.log("Current pending orders: ");
+                        console.log("Order id: ", orders.message[0].order_id);
+                        console.log("User id: ", orders.message[0].user_id);
+                        console.log("Created at: ", orders.message[0].created_at);
+                        console.log("Status: ", orders.message[0].status);
+                    }
+
+                    let result;
+                    while (true) {
+                        console.log("You may only confirm one order at a time.");
+                        let order_to_confirm = await userInput("Please enter the id of the order you would like to confirm.");
+
+                        result = await sendRequest({ request: "confirm_order", body: { order_id: order_to_confirm } });
+
+                        if (result?.success) {
+                            console.log("Order status has been updated.");
+                            console.log("Order id: ", result.message.order_id);
+                            console.log("Updated status: ", result.message.status);
+                        }
+
+                        let proceed = await userInput("Would you like to confirm more orders or exit? enter yes/exit");
+
+                        if (proceed === "yes") {
+                            continue;
+                        } else if(proceed === "exit") {
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+            case "14": {
+                if (admin_logged_in) {
+                    let products = await sendRequest({ request: "view_all_products", body: {date: current_date} });
+            
+                    if (products?.success) {
+                        console.log("_________________________________________________");
+                        console.log("Products: ");
+                        result.message.forEach((p) => {
+                            console.log(`${p.prod_id}: ${p.name} - ${p.base_price}kr - Quantity: ${p.quantity} - Supplier: ${p.supplier} - Discount ${p.percentage ?? 0}`);
+                        })
+                    }
+
+                    let product = await userInput("Which products quantity would you like to alter? Please enter its id.");
+                    let alter = await userInput("Would you like to diminish or increase?");
+                    let amount = await userInput("By how much would you like to diminish or alter?");
+
+                    result = await sendRequest({ request: "edit_quantity", body: { product: product, alter: alter, amount: amount }});
+
+                    if (result?.success) {
+                        console.log("Updated product: ");
+                        console.log("Product id: ", result.message.prod_id);
+                        console.log("Product name: ", result.message.name);
+                        console.log("Updated quantity: ", result.message.quantity);
                     }
                 }
             }

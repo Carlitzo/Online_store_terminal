@@ -31,7 +31,7 @@ export function validateBody({request, body}) {
             } return true;
         }
         case "create_order": {
-            if (!body.items || !body.user_id || !body.date) {
+            if (!body.items || !body.user_id || !body.p_date) {
                 return false;
             } return true;
         }
@@ -39,6 +39,9 @@ export function validateBody({request, body}) {
             if (!body.user_id) {
                 return false;
             } return true;
+        }
+        case "get_all_orders": {
+            return true;
         }
         case "get_order": {
             if (!body.order_id) {
@@ -73,6 +76,29 @@ export function validateBody({request, body}) {
             if (!body.prod_id) {
                 return false;
             } return true;
+        }
+        case "add_supplier": {
+            if (!body.name || !body.email || !body.phone) {
+                return false;
+            } return true;
+        }
+        case "confirm_order": {
+            if (!body.order_id) {
+                return false;
+            } return true;
+        }
+        case "edit_quantity": {
+            if (!body.product || !body.alter || !body.amount) {
+                return false;
+            } return true;
+        }
+        case "cancel_order": {
+            if (!body.order_id || !body.user_id) {
+                return false;
+            } return true;
+        }
+        case "get_discount_history": {
+            return true;
         }
     };
 };

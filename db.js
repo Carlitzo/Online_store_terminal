@@ -2,7 +2,6 @@ import { Client } from "jsr:@db/postgres";
 import { validateBody } from "./validate.js";
 import { verifyPassword } from "./hash.js";
 import "jsr:@std/dotenv/load";
-import { fail } from "node:assert";
 
 export const client = new Client({
     hostname: Deno.env.get("PG_HOST"),
@@ -38,7 +37,7 @@ export async function sendRequest({request, body}) {
                         ]
                       );
 
-                      return { success: true, message: result.rows[0].registerCustomer};
+                      return { success: true, message: result.rows[0]};
                 } catch (error) {
                     return { success: false, message: result };
                 }
@@ -84,6 +83,7 @@ export async function sendRequest({request, body}) {
                 try {
                     console.log("Fetching products");
                     result = await client.queryObject(`SELECT * FROM online_store.all_products($1::timestamp)`, [body.date.toISOString()]);
+                    
                     if (result.rows.length === 0) {
                         return { success: false, message: "No products found"};
                     }
@@ -115,6 +115,10 @@ export async function sendRequest({request, body}) {
                             result = await client.queryObject(`SELECT * FROM online_store.products_by_discount($1::timestamp)`, [body.value]);
                             break;
                         }
+                    }
+
+                    if (result.rows.length === 0 && body.choice === "5") {
+                        return { success: false, message: "No products with discounts available."};
                     }
 
                     if (result.rows.length === 0) {
@@ -157,7 +161,7 @@ export async function sendRequest({request, body}) {
                 try {
                     console.log("getting order");
 
-                    result = await client.queryObject(`SELECT * FROM online_store.get_order_items($1::int)`, [Number(body.order_id)]);
+                    result = await client.queryObject(`SELECT * FROM online_store.get_order_items($1)`, [Number(body.order_id)]);
 
                     if (result.rows.length === 0) {
                         return { success: false, message: "No orders found" };
@@ -283,6 +287,101 @@ export async function sendRequest({request, body}) {
 
                     if (result.rows.length === 0) {
                         return { success: false, message: "No result"};
+                    }
+
+                    return { success: true, message: result.rows };
+                } catch (error) {
+                    return { success: false, message: error };
+                }
+            } case "add_supplier": {
+                try {
+                    console.log("adding supplier");
+                    result = await client.queryObject(`INSERT INTO online_store.supplier(name, email, phone)
+                                                       VALUES ($1, $2, $3) RETURNING *`, [body.name, body.email, body.phone]);
+
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "No result" };
+                    }
+
+                    return { success: true, message: result.rows[0] };
+                } catch (error) {
+                    return { success: false, message: error };
+                }
+            } case "get_all_orders": {
+                try {
+                    console.log("getting all orders");
+                    result = await client.queryObject(`SELECT * FROM online_store.customer_order WHERE status = 'pending'`);
+
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "No result" };
+                    }
+
+                    return { success: true, message: result.rows };
+                } catch (error) {
+                    return { success: false, message: error };
+                }
+            } case "confirm_order": {
+                try {
+                    console.log("confirming order");
+                    result = await client.queryObject(`UPDATE online_store.customer_order SET status = 'confirmed' WHERE order_id = $1
+                        RETURNING order_id, status`,
+                        [body.order_id]
+                    );
+
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "No result"};
+                    }
+
+                    return { success: true, message: result.rows[0] };
+                } catch (error) {
+                    return { success: false, message: error };
+                }
+            } case "edit_quantity": {
+                try {
+                    console.log("editing quantity");
+
+                    if (body.alter === "increase") {
+                        result = await client.queryObject(`UPDATE online_store.product SET quantity = quantity + $2 WHERE prod_id = $1
+                            RETURNING name, prod_id, quantity`,
+                            [body.product, body.amount]
+                        );
+                    } else if (body.alter === "diminish") {
+                        result = await client.queryObject(`UPDATE online_store.product SET quantity = quantity - $2 WHERE prod_id = $1
+                            RETURNING name, prod_id, quantity`,
+                            [body.product, body.amount]);
+                    }
+
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "No result" };
+                    }
+
+                    return { success: true, message: result.rows[0] };
+                } catch (error) {
+                    return { success: false, message: error };
+                }
+            } case "cancel_order": {
+                try {
+                    console.log("cancelling order");
+
+                    result = await client.queryObject(`SELECT * FROM online_store.cancel_order($1,$2)`,
+                                                        [Number(body.order_id), Number(body.user_id)]);
+
+                    if (!result.rows[0].success) {
+                        return { success: false, message: result.rows[0].message };
+                    }
+
+                    return { success: true, message: result.rows[0].message };
+                } catch (error) {
+                    return { success: false, message: error };
+                }
+            } case "get_discount_history": {
+                try {
+                    console.log("getting discount history");
+
+                    result = await client.queryObject(`SELECT * FROM online_store.get_discount_history()`);
+
+                    if (result.rows.length === 0) {
+                        return { success: false, message: "No result found" };
                     }
 
                     return { success: true, message: result.rows };
